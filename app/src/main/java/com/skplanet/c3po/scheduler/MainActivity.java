@@ -26,11 +26,14 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.facebook.stetho.Stetho;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -59,8 +62,7 @@ import java.util.ArrayList;
  * returns a {@link com.google.android.gms.common.api.PendingResult}, whose result
  * object is processed by the {@code onResult} callback.
  */
-public class MainActivity extends AppCompatActivity implements
-        ConnectionCallbacks, OnConnectionFailedListener, ResultCallback<Status> {
+public class MainActivity extends AppCompatActivity {
 
     protected static final String TAG = "activity-recognition";
 
@@ -69,16 +71,6 @@ public class MainActivity extends AppCompatActivity implements
      * {@code ActivityDetectionIntentService}.
      */
     protected ActivityDetectionBroadcastReceiver mBroadcastReceiver;
-
-    /**
-     * Provides the entry point to Google Play services.
-     */
-    protected GoogleApiClient mGoogleApiClient;
-
-    /**
-     * Used when requesting or removing activity detection updates.
-     */
-    private PendingIntent mActivityDetectionPendingIntent;
 
     // UI elements.
     private Button mRequestActivityUpdatesButton;
@@ -101,6 +93,13 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Stetho.initialize(
+                Stetho.newInitializerBuilder(this)
+                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+                        .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+                        .build());
+
         setContentView(R.layout.main_activity);
 
         // Get the UI widgets.
@@ -138,31 +137,17 @@ public class MainActivity extends AppCompatActivity implements
         mDetectedActivitiesListView.setAdapter(mAdapter);
 
         // Kick off the request to build GoogleApiClient.
-        buildGoogleApiClient();
-    }
-
-    /**
-     * Builds a GoogleApiClient. Uses the {@code #addApi} method to request the
-     * ActivityRecognition API.
-     */
-    protected synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(ActivityRecognition.API)
-                .build();
+//        buildGoogleApiClient();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        mGoogleApiClient.connect();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mGoogleApiClient.disconnect();
     }
 
     @Override
@@ -170,6 +155,11 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
         // Register the broadcast receiver that informs this activity of the DetectedActivity
         // object broadcast sent by the intent service.
+
+//        IntentFilter filter = new IntentFilter();
+//        filter.addAction(Constants.BROADCAST_ACTION);
+//        filter.addAction(Constants.ACTIVITY_MONITORING_STATE_CHANGED);
+
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
                 new IntentFilter(Constants.BROADCAST_ACTION));
     }
@@ -182,48 +172,19 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
-     * Runs when a GoogleApiClient object successfully connects.
-     */
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        Log.i(TAG, "Connected to GoogleApiClient");
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        // Refer to the javadoc for ConnectionResult to see what error codes might be returned in
-        // onConnectionFailed.
-        Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + result.getErrorCode());
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause) {
-        // The connection to Google Play services was lost for some reason. We call connect() to
-        // attempt to re-establish the connection.
-        Log.i(TAG, "Connection suspended");
-        mGoogleApiClient.connect();
-    }
-
-    /**
      * Registers for activity recognition updates using
      * {@link com.google.android.gms.location.ActivityRecognitionApi#requestActivityUpdates} which
      * returns a {@link com.google.android.gms.common.api.PendingResult}. Since this activity
      * implements the PendingResult interface, the activity itself receives the callback, and the
      * code within {@code onResult} executes. Note: once {@code requestActivityUpdates()} completes
-     * successfully, the {@code DetectedActivitiesIntentService} starts receiving callbacks when
+     * successfully, the {@code ARDetectService} starts receiving callbacks when
      * activities are detected.
      */
     public void requestActivityUpdatesButtonHandler(View view) {
-        if (!mGoogleApiClient.isConnected()) {
-            Toast.makeText(this, getString(R.string.not_connected),
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        ActivityRecognition.ActivityRecognitionApi.requestActivityUpdates(
-                mGoogleApiClient,
-                Constants.DETECTION_INTERVAL_IN_MILLISECONDS,
-                getActivityDetectionPendingIntent()
-        ).setResultCallback(this);
+        Intent localIntent = new Intent(ARDetectService.START_ACTION);
+
+        localIntent.setClass(this, ARDetectService.class);
+        this.startService(localIntent);
     }
 
     /**
@@ -232,63 +193,14 @@ public class MainActivity extends AppCompatActivity implements
      * returns a {@link com.google.android.gms.common.api.PendingResult}. Since this activity
      * implements the PendingResult interface, the activity itself receives the callback, and the
      * code within {@code onResult} executes. Note: once {@code removeActivityUpdates()} completes
-     * successfully, the {@code DetectedActivitiesIntentService} stops receiving callbacks about
+     * successfully, the {@code ARDetectService} stops receiving callbacks about
      * detected activities.
      */
     public void removeActivityUpdatesButtonHandler(View view) {
-        if (!mGoogleApiClient.isConnected()) {
-            Toast.makeText(this, getString(R.string.not_connected), Toast.LENGTH_SHORT).show();
-            return;
-        }
-        // Remove all activity updates for the PendingIntent that was used to request activity
-        // updates.
-        ActivityRecognition.ActivityRecognitionApi.removeActivityUpdates(
-                mGoogleApiClient,
-                getActivityDetectionPendingIntent()
-        ).setResultCallback(this);
-    }
+        Intent localIntent = new Intent(ARDetectService.STOP_ACTION);
 
-    /**
-     * Runs when the result of calling requestActivityUpdates() and removeActivityUpdates() becomes
-     * available. Either method can complete successfully or with an error.
-     *
-     * @param status The Status returned through a PendingIntent when requestActivityUpdates()
-     *               or removeActivityUpdates() are called.
-     */
-    public void onResult(Status status) {
-        if (status.isSuccess()) {
-            // Toggle the status of activity updates requested, and save in shared preferences.
-            boolean requestingUpdates = !getUpdatesRequestedState();
-            setUpdatesRequestedState(requestingUpdates);
-
-            // Update the UI. Requesting activity updates enables the Remove Activity Updates
-            // button, and removing activity updates enables the Add Activity Updates button.
-            setButtonsEnabledState();
-
-            Toast.makeText(
-                    this,
-                    getString(requestingUpdates ? R.string.activity_updates_added :
-                            R.string.activity_updates_removed),
-                    Toast.LENGTH_SHORT
-            ).show();
-        } else {
-            Log.e(TAG, "Error adding or removing activity detection: " + status.getStatusMessage());
-        }
-    }
-
-    /**
-     * Gets a PendingIntent to be sent for each activity detection.
-     */
-    private PendingIntent getActivityDetectionPendingIntent() {
-        // Reuse the PendingIntent if we already have it.
-        if (mActivityDetectionPendingIntent != null) {
-            return mActivityDetectionPendingIntent;
-        }
-        Intent intent = new Intent(this, DetectedActivitiesIntentService.class);
-
-        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
-        // requestActivityUpdates() and removeActivityUpdates().
-        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        localIntent.setClass(this, ARDetectService.class);
+        this.startService(localIntent);
     }
 
     /**
@@ -354,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
-     * Receiver for intents sent by DetectedActivitiesIntentService via a sendBroadcast().
+     * Receiver for intents sent by ARDetectService via a sendBroadcast().
      * Receives a list of one or more DetectedActivity objects associated with the current state of
      * the device.
      */
@@ -363,9 +275,36 @@ public class MainActivity extends AppCompatActivity implements
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            ArrayList<DetectedActivity> updatedActivities =
-                    intent.getParcelableArrayListExtra(Constants.ACTIVITY_EXTRA);
-            updateDetectedActivitiesList(updatedActivities);
+            if (intent.getAction().equals(Constants.ACTIVITY_MONITORING_STATE_CHANGED)) {
+                String status = intent.getStringExtra(Constants.ACTIVITY_EXTRA);
+                if (status != null && !status.isEmpty()) {
+                    // Toggle the status of activity updates requested, and save in shared preferences.
+                    boolean requestingUpdates = status.equals("STARTED");
+                    setUpdatesRequestedState(requestingUpdates);
+
+                    // Update the UI. Requesting activity updates enables the Remove Activity Updates
+                    // button, and removing activity updates enables the Add Activity Updates button.
+                    setButtonsEnabledState();
+
+                    Toast.makeText(
+                            context,
+                            getString(requestingUpdates ? R.string.activity_updates_added :
+                                    R.string.activity_updates_removed),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            } else {
+                ArrayList<DetectedActivity> updatedActivities =
+                        intent.getParcelableArrayListExtra(Constants.ACTIVITY_EXTRA);
+                updateDetectedActivitiesList(updatedActivities);
+
+//                if (intent.hasExtra(Constants.STATE_EXTRA)) {
+//                    TextView stateText = (TextView) findViewById(R.id.detected_activities_title);
+//
+//                    // Populate widgets with values.
+//                    stateText.setText("검출된 동작: " + intent.getStringExtra(Constants.STATE_EXTRA));
+//                }
+            }
         }
     }
 }

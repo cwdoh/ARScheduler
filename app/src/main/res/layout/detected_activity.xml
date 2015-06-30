@@ -44,4 +44,5 @@
         android:layout_marginTop="@dimen/progress_bar_top_margin"
         android:minHeight="@dimen/progress_bar_min_height"
         android:progress="1" />
+
 </RelativeLayout>

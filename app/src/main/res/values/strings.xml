@@ -20,13 +20,13 @@
     <string name="action_settings">설정</string>
 
     <!-- Activity detection strings -->
-    <string name="in_vehicle">자동차 등의 교통수단</string>
+    <string name="in_vehicle">자동차</string>
     <string name="on_bicycle">자전거</string>
     <string name="on_foot">도보</string>
     <string name="running">달리기</string>
     <string name="still">정지</string>
     <string name="tilting">틸팅</string>
-    <string name="unknown">알수 없는 동작</string>
+    <string name="unknown">Unknown</string>
     <string name="walking">걷기</string>
     <string name="unidentifiable_activity">특정 불가능한 활동: %1$d</string>
 
