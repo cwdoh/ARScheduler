@@ -82,51 +82,48 @@ public class StateMachine {
         //  STILL
         //  UNKNOWN
         //  TILTING
-        boolean loadingResult = false;
 
-        if (loadingResult) {
-        }
-        else {
-            Log.i(TAG, "Set stateDescription as default.");
-            // STATE_KEEP_SCAN
-            Map<Integer, Integer> keepScanDescription = new HashMap<Integer, Integer>();
-
-            keepScanDescription.put(DetectedActivity.IN_VEHICLE, STATE_SCAN_SHORTLY);
-            keepScanDescription.put(DetectedActivity.ON_BICYCLE, STATE_SCAN_SHORTLY);
-            keepScanDescription.put(DetectedActivity.STILL, STATE_SCAN_SHORTLY);
-
-            keepScanDescription.put(DetectedActivity.ON_FOOT, STATE_KEEP_SCAN);
-            keepScanDescription.put(DetectedActivity.UNKNOWN, STATE_KEEP_SCAN);
-            keepScanDescription.put(DetectedActivity.TILTING, STATE_KEEP_SCAN);
-
-            // STATE_SCAN_SHORTLY
-            Map<Integer, Integer> scanShortlyDescription = new HashMap<Integer, Integer>();
-
-            scanShortlyDescription.put(DetectedActivity.IN_VEHICLE, STATE_STOP_SCAN);
-            scanShortlyDescription.put(DetectedActivity.ON_BICYCLE, STATE_STOP_SCAN);
-            scanShortlyDescription.put(DetectedActivity.STILL, STATE_STOP_SCAN);
-
-            scanShortlyDescription.put(DetectedActivity.ON_FOOT, STATE_KEEP_SCAN);
-
-            scanShortlyDescription.put(DetectedActivity.UNKNOWN, STATE_SCAN_SHORTLY);
-            scanShortlyDescription.put(DetectedActivity.TILTING, STATE_SCAN_SHORTLY);
-
-            // STATE_STOP_SCAN
-            Map<Integer, Integer> stopScanDescription = new HashMap<Integer, Integer>();
-
-            stopScanDescription.put(DetectedActivity.ON_FOOT, STATE_SCAN_SHORTLY);
-            stopScanDescription.put(DetectedActivity.TILTING, STATE_SCAN_SHORTLY);
-
-            stateDescription = new HashMap<Integer, Map<Integer, Integer>>();
-
-            stateDescription.put(STATE_KEEP_SCAN, keepScanDescription);
-            stateDescription.put(STATE_SCAN_SHORTLY, scanShortlyDescription);
-            stateDescription.put(STATE_STOP_SCAN, stopScanDescription);
-
+        if (stateDescription != null) {
             return true;
         }
 
-        return false;
+        Log.i(TAG, "Set stateDescription as default.");
+        // STATE_KEEP_SCAN
+        Map<Integer, Integer> keepScanDescription = new HashMap<Integer, Integer>();
+
+        keepScanDescription.put(DetectedActivity.IN_VEHICLE, STATE_SCAN_SHORTLY);
+        keepScanDescription.put(DetectedActivity.ON_BICYCLE, STATE_SCAN_SHORTLY);
+        keepScanDescription.put(DetectedActivity.STILL, STATE_SCAN_SHORTLY);
+
+        keepScanDescription.put(DetectedActivity.ON_FOOT, STATE_KEEP_SCAN);
+        keepScanDescription.put(DetectedActivity.UNKNOWN, STATE_KEEP_SCAN);
+        keepScanDescription.put(DetectedActivity.TILTING, STATE_KEEP_SCAN);
+
+        // STATE_SCAN_SHORTLY
+        Map<Integer, Integer> scanShortlyDescription = new HashMap<Integer, Integer>();
+
+        scanShortlyDescription.put(DetectedActivity.IN_VEHICLE, STATE_STOP_SCAN);
+        scanShortlyDescription.put(DetectedActivity.ON_BICYCLE, STATE_STOP_SCAN);
+        scanShortlyDescription.put(DetectedActivity.STILL, STATE_STOP_SCAN);
+
+        scanShortlyDescription.put(DetectedActivity.ON_FOOT, STATE_KEEP_SCAN);
+
+        scanShortlyDescription.put(DetectedActivity.UNKNOWN, STATE_SCAN_SHORTLY);
+        scanShortlyDescription.put(DetectedActivity.TILTING, STATE_SCAN_SHORTLY);
+
+        // STATE_STOP_SCAN
+        Map<Integer, Integer> stopScanDescription = new HashMap<Integer, Integer>();
+
+        stopScanDescription.put(DetectedActivity.ON_FOOT, STATE_SCAN_SHORTLY);
+        stopScanDescription.put(DetectedActivity.TILTING, STATE_SCAN_SHORTLY);
+
+        stateDescription = new HashMap<Integer, Map<Integer, Integer>>();
+
+        stateDescription.put(STATE_KEEP_SCAN, keepScanDescription);
+        stateDescription.put(STATE_SCAN_SHORTLY, scanShortlyDescription);
+        stateDescription.put(STATE_STOP_SCAN, stopScanDescription);
+
+        return true;
     }
 
     public boolean storeDescription() {
@@ -137,6 +134,7 @@ public class StateMachine {
 
     public int doTransition(int detectedActivity) {
         if (loadDescription()) {
+            Log.i(TAG + "/Activities", "Got " + Constants.getActivityString(mContext, detectedActivity) + ", Current state: " + getStateString(mCurrentState));
             Map<Integer, Integer> stateMap = stateDescription.get(mCurrentState);
 
             if (stateMap.containsKey(detectedActivity)) {
@@ -150,23 +148,21 @@ public class StateMachine {
                         break;
 
                     case STATE_STOP_SCAN:
-                        // Reset Coin
-                        Log.i(TAG, "Resets old coins.");
                         break;
 
                     default:
-                        Log.w(TAG, "Keep '" + getStateString(mCurrentState)
+                        Log.w(TAG + "/Activities", "Keep '" + getStateString(mCurrentState)
                                 + "', because of unknown transition state: " + getStateString(transitionState));
                         return mCurrentState;
                 }
 
-                Log.i(TAG, "Transition from '" + getStateString(mCurrentState) + "' to '" + getStateString(transitionState) + "'.");
+                Log.i(TAG + "/Activities", "Transition from '" + getStateString(mCurrentState) + "' to '" + getStateString(transitionState) + "'.");
 
                 mCurrentState = transitionState;
                 write(mContext, PREF_KEY_STATE, mCurrentState);
-
-                return mCurrentState;
             }
+
+            return mCurrentState;
         }
 
         return STATE_KEEP_SCAN;

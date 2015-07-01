@@ -115,7 +115,7 @@ public class ARDetectService extends IntentService implements
         Log.v(TAG, "connectGoogleApiClient() returns " + result.toString());
 
         if (result.isSuccess()) {
-            final Context context = this;
+            final Context context = this.getApplicationContext();
 
             ActivityRecognition.ActivityRecognitionApi.requestActivityUpdates(
                     mGoogleApiClient,
@@ -156,7 +156,7 @@ public class ARDetectService extends IntentService implements
         Log.v(TAG, "connectGoogleApiClient() returns " + result.toString());
 
         if (result.isSuccess()) {
-            final Context context = this;
+            final Context context = this.getApplicationContext();
 
             // Remove all activity updates for the PendingIntent that was used to request activity
             // updates.
@@ -247,17 +247,29 @@ public class ARDetectService extends IntentService implements
 
         try {
             for (DetectedActivity da : detectedActivities) {
+                Log.i(TAG, Constants.getActivityString(
+                                getApplicationContext(),
+                                da.getType()) + " " + da.getConfidence() + "%"
+                );
+
                 activity.put(Constants.getActivityString(getApplicationContext(), da.getType()), da.getConfidence());
 
                 switch (da.getType()) {
                     case DetectedActivity.IN_VEHICLE:
                     case DetectedActivity.ON_BICYCLE:
                     case DetectedActivity.STILL:
-                    case DetectedActivity.ON_FOOT:
                     case DetectedActivity.TILTING:
                     case DetectedActivity.UNKNOWN:
                         if (primeActivityConfidence < da.getConfidence()) {
                             primeActivity = da.getType();
+                            primeActivityConfidence = da.getConfidence();
+                        }
+                        break;
+
+                    case DetectedActivity.ON_FOOT:
+                        if (primeActivityConfidence <= da.getConfidence()) {
+                            primeActivity = da.getType();
+                            primeActivityConfidence = da.getConfidence();
                         }
                         break;
 

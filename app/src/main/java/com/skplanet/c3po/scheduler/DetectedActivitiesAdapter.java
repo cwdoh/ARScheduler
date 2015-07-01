@@ -56,7 +56,7 @@ public class DetectedActivitiesAdapter extends ArrayAdapter<DetectedActivity> {
 
         // Populate widgets with values.
         activityName.setText(Constants.getActivityString(getContext(),
-                        detectedActivity.getType()));
+                detectedActivity.getType()));
         activityConfidenceLevel.setText(detectedActivity.getConfidence() + "%");
         progressBar.setProgress(detectedActivity.getConfidence());
         return view;

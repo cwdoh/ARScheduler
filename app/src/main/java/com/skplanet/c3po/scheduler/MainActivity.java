@@ -156,12 +156,12 @@ public class MainActivity extends AppCompatActivity {
         // Register the broadcast receiver that informs this activity of the DetectedActivity
         // object broadcast sent by the intent service.
 
-//        IntentFilter filter = new IntentFilter();
-//        filter.addAction(Constants.BROADCAST_ACTION);
-//        filter.addAction(Constants.ACTIVITY_MONITORING_STATE_CHANGED);
+        IntentFilter filter = new IntentFilter(Constants.BROADCAST_ACTION);
+        filter.addAction(Constants.ACTIVITY_MONITORING_STATE_CHANGED);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, filter);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
-                new IntentFilter(Constants.BROADCAST_ACTION));
+//        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+//                new IntentFilter(Constants.BROADCAST_ACTION));
     }
 
     @Override
@@ -298,12 +298,12 @@ public class MainActivity extends AppCompatActivity {
                         intent.getParcelableArrayListExtra(Constants.ACTIVITY_EXTRA);
                 updateDetectedActivitiesList(updatedActivities);
 
-//                if (intent.hasExtra(Constants.STATE_EXTRA)) {
-//                    TextView stateText = (TextView) findViewById(R.id.detected_activities_title);
-//
-//                    // Populate widgets with values.
-//                    stateText.setText("검출된 동작: " + intent.getStringExtra(Constants.STATE_EXTRA));
-//                }
+                if (intent.hasExtra(Constants.STATE_EXTRA)) {
+                    TextView stateText = (TextView) findViewById(R.id.detected_activities_title);
+
+                    // Populate widgets with values.
+                    stateText.setText("검출된 동작: " + intent.getStringExtra(Constants.STATE_EXTRA));
+                }
             }
         }
     }

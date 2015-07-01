@@ -39,9 +39,6 @@ limitations under the License.
         <!-- Service that provides activity recognition data. Setting the android:exported attribute
         to "false" stops other apps from starting this service, even when using an explicit
         intent. -->
-        <!--<service
-            android:name=".DetectedActivitiesIntentService"
-            android:exported="false" />-->
         <service
             android:name=".ARDetectService"
             android:exported="false" />
